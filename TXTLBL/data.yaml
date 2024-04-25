@@ -1,0 +1,23 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 7
+names: ['Chart', 'Circuit Diagram', 'Equation', 'Figure', 'Image', 'Logo', 'Table']
+
+# axis_title
+# chart_title
+# legend_label
+# legend_title
+# mark_label
+# other
+# tick_grouping
+# tick_label
+# value_label
+
+roboflow:
+  workspace: dod
+  project: ncert-o7m3m
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/dod/ncert-o7m3m/dataset/1

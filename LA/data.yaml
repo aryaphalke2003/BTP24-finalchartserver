@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 1
+names: ['0']
+
+roboflow:
+  workspace: hadia
+  project: trxtdet
+  version: 1
+  license: Private
+  url: https://app.roboflow.com/hadia/trxtdet/1
