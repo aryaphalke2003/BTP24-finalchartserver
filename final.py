@@ -6,14 +6,13 @@ import tensorflow as tf
 from tensorflow import keras
 from werkzeug.utils import secure_filename
 from flask_cors import CORS
-
 import base64
 from flask import Flask, request, jsonify
 import subprocess
 import os
 import json
 import shutil
-import pytesseract
+# import pytesseract  # Remove if not used
 from PIL import Image
 import fastwer
 import jiwer
@@ -53,10 +52,6 @@ from tensorflow.keras.models import load_model
 tf.config.experimental_run_functions_eagerly(True)
 import tensorflow as tf
 from tensorflow.keras.models import Model
-       
-from tensorflow import keras
-        
-    
 
 import cv2
 import numpy as np
@@ -65,7 +60,7 @@ app = Flask(__name__)
 CORS(app)
 
 
-UPLOAD_FOLDER = 'uploads'
+UPLOAD_FOLDER = 'D:/cccc/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -75,15 +70,15 @@ display_labels1=['area','heatmap','horizontal_bar','horizontal_interval','line',
 
 label_classes = ['axis_title','chart_title','legend_label','legend_title','mark_label','other','tick_grouping','tick_label','value_label']
 label_map = {
-    0: 'axis_title',
-    1: 'chart_title',
-    2: 'legend_label',
-    3: 'legend_title',
-    4: 'mark_label',
-    5: 'other',
-    6: 'tick_grouping',
-    7: 'tick_label',
-    8: 'value_label'
+    '0': 'axis_title',
+    '1': 'chart_title',
+    '2': 'legend_label',
+    '3': 'legend_title',
+    '4': 'mark_label',
+    '5': 'other',
+    '6': 'tick_grouping',
+    '7': 'tick_label',
+    '8': 'value_label'
 }
 characters_train = [' ', '!', '"', '#', '$', '%', '&', "'", '(', ')', '*', '+', ',', '-', '.', '/', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '<', '=', '>', '?', '@', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '[', '\\', ']', '^', '_', '`', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '{', '|', '}', '~', '¢', '£', '¥', '§', '®', '°', 'é', '—', '‘', '’', '“', '”', '€', '™', 'ﬁ', 'ﬂ']
 characters = characters_train 
@@ -100,6 +95,7 @@ class CTCLayer(layers.Layer):
         input_length = input_length * tf.ones(shape=(batch_len, 1), dtype="int64")
         label_length = label_length * tf.ones(shape=(batch_len, 1), dtype="int64")
         loss = self.loss_fn(y_true, y_pred, input_length, label_length)
+        
         self.add_loss(loss)
         return y_pred
 
@@ -185,21 +181,26 @@ def get_latest_exp_folder(exp_folder):
     return latest_exp_folder
 
     
-def getocr(image):
+def getocr(image_path):
     
+    print("inoc")
+    print(image_path)
+    
+
     def process_single_sample(img_path):
         img_width = 128
         img_height = 32
-        img = tf.convert_to_tensor(img, dtype=tf.float32)
+        img = tf.io.read_file(img_path)
+        img = tf.io.decode_png(img, channels=1)
         img = tf.image.convert_image_dtype(img, tf.float32)
         img = tf.image.resize(img, [img_height, img_width])
         return img
- 
+
     def predText(img): 
         # Read characters from the text file
         image = np.expand_dims(img, axis=0)  # Add a batch dimension
 
-        # Run prediction2
+        # Run prediction
         preds = inference_model.predict(image)
 
         # Decode CTC output to text
@@ -232,6 +233,7 @@ def getocr(image):
         lines = cv2.HoughLinesP(thresh, 1, np.pi / 180, threshold=50, minLineLength=50, maxLineGap=10)
         #print(lines)
         if(lines is None):
+    #        print('hi')
             return image
         angles = []
         for line in lines:
@@ -241,7 +243,7 @@ def getocr(image):
         
         # Compute median angle
         median_angle = np.median(angles)
-    
+    # print(f"Median angle: {median_angle}")
         if(median_angle>30 or median_angle<-30):  
             (h, w) = image.shape[:2]
             # Rotate image to correct skew
@@ -264,13 +266,27 @@ def getocr(image):
         return image
 
 
+
     def obtain_recog(img):
-        im1 = correct_skew(img)
-        img = process_single_sample(im1)
-        pred_str = predText(img)
+        im1=correct_skew(img)
+        cv2.imwrite('as.png',im1)
+        img=process_single_sample('as.png')
+        pred_str=predText(img)
         return pred_str
 
-    return obtain_recog(image)
+
+    def get_latest_exp_folder(exp_folder):
+        exp_folders = [os.path.join(exp_folder, d) for d in os.listdir(exp_folder) if os.path.isdir(os.path.join(exp_folder, d))]
+        latest_exp_folder = max(exp_folders, key=os.path.getmtime)
+        return latest_exp_folder
+
+    def apply_ocr(image_path):
+        img = cv2.imread(image_path)
+        text=obtain_recog(img)
+        return text
+
+
+    return apply_ocr(image_path)
 
 class DetectionObject:
     def __init__(self, xlt, ylt, xrb, yrb, role, text,mapped_tick=None,axis=None):
@@ -347,6 +363,10 @@ def find_nearest_xticklabel(tick, ticklabels):
     return nearest_ticklabel
 
 import cv2 as cv
+import cv2
+import tempfile
+import os
+
            
             
 @app.route('/')
@@ -399,19 +419,24 @@ def upload_file():
             label_objects=[]
             
             img = cv.imread(image_path)
+            txt="uuu"
 
             for line in label_lines:
                 line = line.rstrip()
                 line = line.split(" ")
+                
                 if line[0] == '7':
                     ticklabelcenters.append(line[1]+' '+line[2]+' '+line[3]+' '+line[4])
                 else:
-                    a,b,c,d = func(line[1],line[2],line[3],line[4])
+                    aa,bb,cc,dd = func(line[1],line[2],line[3],line[4])
                     img_height, img_width, _ = img.shape
-                    a,b,c,d = int(a * img_width), int(b * img_height), int(c * img_width), int(d * img_height)
+                    a,b,c,d = int(aa * img_width), int(bb * img_height), int(cc * img_width), int(dd * img_height)
                     cropped_image = img[b:d, a:c]
-                    txt = getocr(cropped_image)
-                    label_objects.append(DetectionObject(a, b, c, d, label_map[int(line[0])], txt))
+                    cv2.imwrite('./cropped/temp_image.jpg', cropped_image)
+                    
+                    temp_image_path = './cropped/temp_image.jpg'
+                    txt = getocr(temp_image_path)
+                    label_objects.append(DetectionObject(aa, bb, cc, dd, label_map[line[0]], txt))
         
 
             for line in tick_lines:
@@ -452,8 +477,16 @@ def upload_file():
             mapped_points_y = []
             for tick in y_ticks:
                 nearest_ticklabel = find_nearest_yticklabel(tick, y_ticklabels)
-                a,b,c,d = nearest_ticklabel
-                label_objects.append(DetectionObject(a, b, c, d, label_map[int(line[0])], txt,tick,'y'))
+                aa,bb,cc,dd = nearest_ticklabel
+                img_height, img_width, _ = img.shape
+                a,b,c,d = int(aa * img_width), int(bb * img_height), int(cc * img_width), int(dd * img_height)
+                cropped_image = img[b:d, a:c]
+                cv2.imwrite('./cropped/temp_image.jpg', cropped_image)
+
+                temp_image_path = './cropped/temp_image.jpg'
+                txt = getocr(temp_image_path)
+                
+                label_objects.append(DetectionObject(aa, bb, cc, dd, "y_label", txt,tick,'y'))
                 mapped_points_y.append((tick, nearest_ticklabel))
                 if(nearest_ticklabel in y_ticklabels):
                     y_ticklabels.remove(nearest_ticklabel)  # Remove the mapped point to avoid repetition
@@ -468,7 +501,14 @@ def upload_file():
             for tick in x_ticks:
                 nearest_ticklabel = find_nearest_xticklabel(tick, x_ticklabels)
                 a,b,c,d = nearest_ticklabel
-                label_objects.append(DetectionObject(a, b, c, d, label_map[int(line[0])], txt,tick,'x'))
+                img_height, img_width, _ = img.shape
+                a,b,c,d = int(a * img_width), int(b * img_height), int(c * img_width), int(d * img_height)
+                cropped_image = img[b:d, a:c]
+                cv2.imwrite('./cropped/temp_image.jpg', cropped_image)
+
+                temp_image_path = './cropped/temp_image.jpg'
+                txt = getocr(temp_image_path)
+                label_objects.append(DetectionObject(a, b, c, d, "x_label", txt,tick,'x'))
                 mapped_points_x.append((tick, nearest_ticklabel))
                 if(nearest_ticklabel in x_ticklabels):
                     x_ticklabels.remove(nearest_ticklabel)  # Remove the mapped point to avoid repetition
