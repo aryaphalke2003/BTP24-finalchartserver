@@ -319,20 +319,26 @@ def func(x,y,w,h):
 
 
 
+import os
+
 def read_single_txt_in_folder(folder_path):
-    # Get list of files in the folder
     files = os.listdir(folder_path)
-    
-    # Filter only the txt files
     txt_files = [file for file in files if file.endswith('.txt')]
     
-    if len(txt_files) == 1:  # If only one txt file is found
+    if len(txt_files) == 0:
+        return []
+    elif len(txt_files) > 1:
+        raise ValueError("Expected exactly one txt file in the folder, but found {}.".format(len(txt_files)))
+    else:
         txt_file_path = os.path.join(folder_path, txt_files[0])
         with open(txt_file_path, 'r') as f:
             label_lines = f.readlines()
-        return label_lines
-    else:
-        raise ValueError("Expected exactly one txt file in the folder, but found {}.".format(len(txt_files)))
+        
+        if not label_lines:
+            return []
+        else:
+            return label_lines
+
 
 
 import math
@@ -476,45 +482,44 @@ def upload_file():
             print("legendticks",legendticks)
             
             
-            parsed_entries = [list(map(float, entry.split())) for entry in legendticks]
             
-            x=1
-            first = abs(parsed_entries[0][0] - parsed_entries[1][0])/parsed_entries[0][0]
-            second = abs(parsed_entries[0][1] - parsed_entries[1][1])/parsed_entries[0][1]
-            if first > second:
-                x=0
-                legendticks = sorted(parsed_entries, key=lambda x: x[0])
-            else:
-                legendticks = sorted(parsed_entries, key=lambda x: x[1])
-            
-            if x==0:
-                parsed_entries = [list(map(float, entry.split())) for entry in legendlabelcenters]
-                legendlabelcenters = sorted(parsed_entries, key=lambda x: x[0])
-            else:
-                parsed_entries = [list(map(float, entry.split())) for entry in legendlabelcenters]
-                legendlabelcenters = sorted(parsed_entries, key=lambda x: x[1])
-            
-            print("slegendlabel",legendlabelcenters)
-            print("slegendticks",legendticks)
-            
-            
-            sz = min(len(legendlabelcenters),len(legendticks))
-                     
-            for i in range(0,sz):
-                aa,bb,cc,dd = func(legendlabelcenters[i][0],legendlabelcenters[i][1],legendlabelcenters[i][2],legendlabelcenters[i][3])
-                ta,tb,tc,td = func(legendticks[i][0],legendticks[i][1],legendticks[i][2],legendticks[i][3])
-                lmark = (ta,tb,tc,td)
-                img_height, img_width, _ = img.shape
-                a,b,c,d = int(aa * img_width), int(bb * img_height), int(cc * img_width), int(dd * img_height)
-                cropped_image = img[b:d, a:c]
-                cv2.imwrite('./cropped/temp_image.jpg', cropped_image)
-                temp_image_path = './cropped/temp_image.jpg'
-                txt = getocr(temp_image_path)
-                label_objects.append(DetectionObject(aa, bb, cc, dd, "legend_label", txt,lmark))
+            if len(legendticks) > 0:
+                parsed_entries = [list(map(float, entry.split())) for entry in legendticks]
+                x=1
+                first = abs(parsed_entries[0][0] - parsed_entries[1][0])/parsed_entries[0][0]
+                second = abs(parsed_entries[0][1] - parsed_entries[1][1])/parsed_entries[0][1]
+                if first > second:
+                    x=0
+                    legendticks = sorted(parsed_entries, key=lambda x: x[0])
+                else:
+                    legendticks = sorted(parsed_entries, key=lambda x: x[1])
+                
+                if x==0:
+                    parsed_entries = [list(map(float, entry.split())) for entry in legendlabelcenters]
+                    legendlabelcenters = sorted(parsed_entries, key=lambda x: x[0])
+                else:
+                    parsed_entries = [list(map(float, entry.split())) for entry in legendlabelcenters]
+                    legendlabelcenters = sorted(parsed_entries, key=lambda x: x[1])
+                
+                print("slegendlabel",legendlabelcenters)
+                print("slegendticks",legendticks)
                 
                 
+                sz = min(len(legendlabelcenters),len(legendticks))
+                        
+                for i in range(0,sz):
+                    aa,bb,cc,dd = func(legendlabelcenters[i][0],legendlabelcenters[i][1],legendlabelcenters[i][2],legendlabelcenters[i][3])
+                    ta,tb,tc,td = func(legendticks[i][0],legendticks[i][1],legendticks[i][2],legendticks[i][3])
+                    lmark = (ta,tb,tc,td)
+                    img_height, img_width, _ = img.shape
+                    a,b,c,d = int(aa * img_width), int(bb * img_height), int(cc * img_width), int(dd * img_height)
+                    cropped_image = img[b:d, a:c]
+                    cv2.imwrite('./cropped/temp_image.jpg', cropped_image)
+                    temp_image_path = './cropped/temp_image.jpg'
+                    txt = getocr(temp_image_path)
+                    label_objects.append(DetectionObject(aa, bb, cc, dd, "legend_label", txt,lmark))
                 
-            
+                    
             
             x_ticks=[]
             x_ticklabels=[]
