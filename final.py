@@ -315,6 +315,9 @@ def func(x,y,w,h):
     return x_min_pd,y_min_pd,x_max_pd,y_max_pd
 
 
+    
+
+
 
 def read_single_txt_in_folder(folder_path):
     # Get list of files in the folder
@@ -412,14 +415,26 @@ def upload_file():
             tick_lines = read_single_txt_in_folder(folderpath)
             os.chdir('..')
             
+            
+            os.chdir('./LA')
+            ycmd = ['python','detect.py','--weights','best.pt','--source',image_path,'--save-txt']
+            subprocess.run(ycmd)
+            exp_folder = './runs/detect'
+            latest_exp_folder = get_latest_exp_folder(exp_folder)
+            folderpath = os.path.join(latest_exp_folder, 'labels')
+            legend_lines = read_single_txt_in_folder(folderpath)
+            os.chdir('..')
+            
+            
             ticklabelcenters=[]
             chartlay=[]
             tickcenters=[]
-
             label_objects=[]
+            legendlabelcenters=[]
+            legendticks=[]
             
             img = cv.imread(image_path)
-            txt="uuu"
+            txt="Null"
 
             for line in label_lines:
                 line = line.rstrip()
@@ -427,6 +442,8 @@ def upload_file():
                 
                 if line[0] == '7':
                     ticklabelcenters.append(line[1]+' '+line[2]+' '+line[3]+' '+line[4])
+                elif line[0] == '2':
+                    legendlabelcenters.append(line[1]+' '+line[2]+' '+line[3]+' '+line[4])
                 else:
                     aa,bb,cc,dd = func(line[1],line[2],line[3],line[4])
                     img_height, img_width, _ = img.shape
@@ -449,6 +466,56 @@ def upload_file():
                 else:
                     tickcenters.append(line[1]+' '+line[2]+' '+line[3]+' '+line[4])
 
+            for line in legend_lines:
+                line = line.rstrip()
+                line = line.split(" ")
+                legendticks.append(line[1]+' '+line[2]+' '+line[3]+' '+line[4])
+            
+            
+            print("legendlabel",legendlabelcenters)
+            print("legendticks",legendticks)
+            
+            
+            parsed_entries = [list(map(float, entry.split())) for entry in legendticks]
+            
+            x=1
+            first = abs(parsed_entries[0][0] - parsed_entries[1][0])/parsed_entries[0][0]
+            second = abs(parsed_entries[0][1] - parsed_entries[1][1])/parsed_entries[0][1]
+            if first > second:
+                x=0
+                legendticks = sorted(parsed_entries, key=lambda x: x[0])
+            else:
+                legendticks = sorted(parsed_entries, key=lambda x: x[1])
+            
+            if x==0:
+                parsed_entries = [list(map(float, entry.split())) for entry in legendlabelcenters]
+                legendlabelcenters = sorted(parsed_entries, key=lambda x: x[0])
+            else:
+                parsed_entries = [list(map(float, entry.split())) for entry in legendlabelcenters]
+                legendlabelcenters = sorted(parsed_entries, key=lambda x: x[1])
+            
+            print("slegendlabel",legendlabelcenters)
+            print("slegendticks",legendticks)
+            
+            
+            sz = min(len(legendlabelcenters),len(legendticks))
+                     
+            for i in range(0,sz):
+                aa,bb,cc,dd = func(legendlabelcenters[i][0],legendlabelcenters[i][1],legendlabelcenters[i][2],legendlabelcenters[i][3])
+                ta,tb,tc,td = func(legendticks[i][0],legendticks[i][1],legendticks[i][2],legendticks[i][3])
+                lmark = (ta,tb,tc,td)
+                img_height, img_width, _ = img.shape
+                a,b,c,d = int(aa * img_width), int(bb * img_height), int(cc * img_width), int(dd * img_height)
+                cropped_image = img[b:d, a:c]
+                cv2.imwrite('./cropped/temp_image.jpg', cropped_image)
+                temp_image_path = './cropped/temp_image.jpg'
+                txt = getocr(temp_image_path)
+                label_objects.append(DetectionObject(aa, bb, cc, dd, "legend_label", txt,lmark))
+                
+                
+                
+            
+            
             x_ticks=[]
             x_ticklabels=[]
             y_ticks=[]
@@ -500,15 +567,15 @@ def upload_file():
             mapped_points_x = []
             for tick in x_ticks:
                 nearest_ticklabel = find_nearest_xticklabel(tick, x_ticklabels)
-                a,b,c,d = nearest_ticklabel
+                aa,bb,cc,dd = nearest_ticklabel
                 img_height, img_width, _ = img.shape
-                a,b,c,d = int(a * img_width), int(b * img_height), int(c * img_width), int(d * img_height)
+                a,b,c,d = int(aa * img_width), int(bb * img_height), int(cc * img_width), int(dd * img_height)
                 cropped_image = img[b:d, a:c]
                 cv2.imwrite('./cropped/temp_image.jpg', cropped_image)
 
                 temp_image_path = './cropped/temp_image.jpg'
                 txt = getocr(temp_image_path)
-                label_objects.append(DetectionObject(a, b, c, d, "x_label", txt,tick,'x'))
+                label_objects.append(DetectionObject(aa, bb, cc, dd, "x_label", txt,tick,'x'))
                 mapped_points_x.append((tick, nearest_ticklabel))
                 if(nearest_ticklabel in x_ticklabels):
                     x_ticklabels.remove(nearest_ticklabel)  # Remove the mapped point to avoid repetition
