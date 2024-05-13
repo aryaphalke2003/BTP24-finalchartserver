@@ -289,6 +289,8 @@ class DetectionObject:
         self.axis = axis
         
         
+        
+        
 
 def func(x,y,w,h):
     x=float(x)
@@ -399,6 +401,8 @@ def run_script(filename,image_path):
     folderpath = os.path.join(latest_exp_folder, 'labels')
     legend_lines = read_single_txt_in_folder(folderpath)
     os.chdir('..')
+    
+    
 
 
     ticklabelcenters=[]
@@ -445,12 +449,13 @@ def run_script(filename,image_path):
         line = line.rstrip()
         line = line.split(" ")
         legendticks.append(line[1]+' '+line[2]+' '+line[3]+' '+line[4])
+    
 
 
+    
+    
     print("legendlabel",legendlabelcenters)
     print("legendticks",legendticks)
-
-
 
     if len(legendticks) > 0:
         parsed_entries = [list(map(float, entry.split())) for entry in legendticks]
@@ -577,6 +582,8 @@ def run_script(filename,image_path):
 
     # Return JSON response
     
+    
+
     
     print(f"Running script on {filename} at {image_path}")
     

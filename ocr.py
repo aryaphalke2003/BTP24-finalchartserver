@@ -261,7 +261,7 @@ def apply_ocr(image_path,angle):
 
 
 # Path to the croppedx folder
-croppedx_folder = './croppedx/'
+croppedx_folder = './cropped/'
 
 # Initialize the OCR engine
 pytesseract.pytesseract.tesseract_cmd = "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"  
